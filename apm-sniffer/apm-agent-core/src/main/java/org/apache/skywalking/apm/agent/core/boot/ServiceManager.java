@@ -36,6 +36,7 @@ public enum ServiceManager {
     INSTANCE;
 
     private static final ILog LOGGER = LogManager.getLogger(ServiceManager.class);
+    // 存储所有的服务
     private Map<Class, BootService> bootedServices = Collections.emptyMap();
 
     public void boot() {
@@ -56,6 +57,7 @@ public enum ServiceManager {
         });
     }
 
+    // 加载所有的服务
     private Map<Class, BootService> loadAllServices() {
         Map<Class, BootService> bootedServices = new LinkedHashMap<>();
         List<BootService> allServices = new LinkedList<>();
@@ -64,6 +66,7 @@ public enum ServiceManager {
             Class<? extends BootService> bootServiceClass = bootService.getClass();
             boolean isDefaultImplementor = bootServiceClass.isAnnotationPresent(DefaultImplementor.class);
             if (isDefaultImplementor) {
+                // 默认实现, 不存在就放入. 存在是因为被 override 了, 可以忽略.
                 if (!bootedServices.containsKey(bootServiceClass)) {
                     bootedServices.put(bootServiceClass, bootService);
                 } else {
@@ -71,7 +74,9 @@ public enum ServiceManager {
                 }
             } else {
                 OverrideImplementor overrideImplementor = bootServiceClass.getAnnotation(OverrideImplementor.class);
+                // 既不是默认实现, 也不是覆盖实现.
                 if (overrideImplementor == null) {
+                    // 不存在就放入. 存在有可能是重名或者被重复加载了, 抛异常.
                     if (!bootedServices.containsKey(bootServiceClass)) {
                         bootedServices.put(bootServiceClass, bootService);
                     } else {
@@ -80,9 +85,12 @@ public enum ServiceManager {
                 } else {
                     Class<? extends BootService> targetService = overrideImplementor.value();
                     if (bootedServices.containsKey(targetService)) {
+                        // 覆盖实现要覆盖的默认实现已经放入
+                        // 判断是不是默认实现
                         boolean presentDefault = bootedServices.get(targetService)
                                                                .getClass()
                                                                .isAnnotationPresent(DefaultImplementor.class);
+                        // 已存在的实现是默认实现, 则覆盖, 不是就抛异常.
                         if (presentDefault) {
                             bootedServices.put(targetService, bootService);
                         } else {
@@ -90,6 +98,7 @@ public enum ServiceManager {
                                 "Service " + bootServiceClass + " overrides conflict, " + "exist more than one service want to override :" + targetService);
                         }
                     } else {
+                        // 覆盖实现要覆盖的默认实现还未放入, 直接放入.
                         bootedServices.put(targetService, bootService);
                     }
                 }
@@ -141,6 +150,7 @@ public enum ServiceManager {
     }
 
     void load(List<BootService> allServices) {
+        // 去加载所有实现 BootService 接口的类
         for (final BootService bootService : ServiceLoader.load(BootService.class, AgentClassLoader.getDefault())) {
             allServices.add(bootService);
         }

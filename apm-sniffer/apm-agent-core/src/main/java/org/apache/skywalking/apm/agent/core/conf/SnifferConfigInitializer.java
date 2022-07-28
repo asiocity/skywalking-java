@@ -98,6 +98,7 @@ public class SnifferConfigInitializer {
         configureLogger();
         LOGGER = LogManager.getLogger(SnifferConfigInitializer.class);
 
+        // SERVICE_NAME 必须被配置, 最终会注册到后端服务上.
         if (StringUtil.isEmpty(Config.Agent.SERVICE_NAME)) {
             throw new ExceptionInInitializerError("`agent.service_name` is missing.");
         } else {
@@ -110,6 +111,7 @@ public class SnifferConfigInitializer {
                 );
             }
         }
+        // BACKEND_SERVICE 必须被配置.
         if (StringUtil.isEmpty(Config.Collector.BACKEND_SERVICE)) {
             throw new ExceptionInInitializerError("`collector.backend_service` is missing.");
         }

@@ -94,6 +94,7 @@ public class SkyWalkingAgent {
         // 3. skywalking 使用 ByteBuddy 来进行字节码增强. 定制化 Agent 的行为(核心代码)
         final ByteBuddy byteBuddy = new ByteBuddy().with(TypeValidation.of(Config.Agent.IS_OPEN_DEBUGGING_CLASS));
 
+        // 指定 Byte Buddy 要忽略的类
         AgentBuilder agentBuilder = new AgentBuilder.Default(byteBuddy).ignore(
                 nameStartsWith("net.bytebuddy.")
                         .or(nameStartsWith("org.slf4j."))
@@ -105,6 +106,7 @@ public class SkyWalkingAgent {
                         .or(allSkyWalkingAgentExcludeToolkit())
                         .or(ElementMatchers.isSynthetic()));
 
+        // 读取 Byte Buddy 的核心类
         JDK9ModuleExporter.EdgeClasses edgeClasses = new JDK9ModuleExporter.EdgeClasses();
         try {
             agentBuilder = BootstrapInstrumentBoost.inject(pluginFinder, instrumentation, agentBuilder, edgeClasses);
@@ -113,13 +115,17 @@ public class SkyWalkingAgent {
             return;
         }
 
+        // jdk9 开始不会加载所有的 class
+        // module-info.java 中描述了包的依赖关系和可导出的类
         try {
+            // 绕开 jdk9 的模块系统
             agentBuilder = JDK9ModuleExporter.openReadEdge(instrumentation, agentBuilder, edgeClasses);
         } catch (Exception e) {
             LOGGER.error(e, "SkyWalking agent open read edge in JDK 9+ failure. Shutting down.");
             return;
         }
 
+        // 将修改后的字节码保存到文件或者内存中
         if (Config.Agent.IS_CACHE_ENHANCED_CLASS) {
             try {
                 agentBuilder = agentBuilder.with(new CacheableTransformerDecorator(Config.Agent.CLASS_CACHE_MODE));
@@ -130,9 +136,13 @@ public class SkyWalkingAgent {
         }
 
         agentBuilder.type(pluginFinder.buildMatch())
+                    // retransform: 将原有的功能重命名, 然后将增强类型替换为原有的类型
+                    // redefine 和 retransform 的区别: 是否保留原有的功能, 如果保留原有的功能, 那么就是 redefine, 否则就是 retransform
                     .transform(new Transformer(pluginFinder))
                     .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
+                    // 发生异常时, 打印异常信息
                     .with(new RedefinitionListener())
+                    // 对 transform 中的事件的监听, 也就是打印日志
                     .with(new Listener())
                     .installOn(instrumentation);
 

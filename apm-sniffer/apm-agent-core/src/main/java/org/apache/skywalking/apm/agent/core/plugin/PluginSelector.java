@@ -37,6 +37,8 @@ public class PluginSelector {
      * @see Config.Plugin#EXCLUDE_PLUGINS
      */
     public List<PluginDefine> select(List<PluginDefine> pluginDefines) {
+        // 根据配置文件中的 excludePlugins 配置, 过滤掉不需要的 plugins
+        // 因为有可能同一份 java-agent 启动了多个实例, 每个实例都会加载同一份配置文件, 所以每个实例都会有自己的 excludePlugins 配置
         if (!EXCLUDE_PLUGINS.isEmpty()) {
             List<String> excludes = Arrays.asList(EXCLUDE_PLUGINS.toLowerCase().split(","));
             return pluginDefines.stream()

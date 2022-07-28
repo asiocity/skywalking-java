@@ -47,30 +47,36 @@ public class DubboInstrumentation extends ClassInstanceMethodsEnhancePluginDefin
 
     public static final String CONTEXT_ATTACHMENT_TYPE_NAME = "org.apache.dubbo.rpc.RpcContextAttachment";
 
+    // 定义要拦截的类, 这里就是 Dubbo 的 MonitorFilter 类
     @Override
     protected ClassMatch enhanceClass() {
         return NameMatch.byName(ENHANCE_CLASS);
     }
 
+    // 定义要拦截的构造方法
     @Override
     public ConstructorInterceptPoint[] getConstructorsInterceptPoints() {
         return null;
     }
 
+    // 定义要拦截的方法
     @Override
     public InstanceMethodsInterceptPoint[] getInstanceMethodsInterceptPoints() {
         return new InstanceMethodsInterceptPoint[] {
             new InstanceMethodsInterceptPoint() {
+                // 只对 org.apache.dubbo.monitor.support.MonitorFilter 的 invoke 方法感兴趣
                 @Override
                 public ElementMatcher<MethodDescription> getMethodsMatcher() {
                     return named(INTERCEPT_POINT_METHOD);
                 }
 
+                // 使用 DubboInterceptor 拦截 invoke 方法
                 @Override
                 public String getMethodsInterceptor() {
                     return INTERCEPT_CLASS;
                 }
 
+                // 是否要对原来的入参进行改变
                 @Override
                 public boolean isOverrideArgs() {
                     return false;

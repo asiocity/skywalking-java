@@ -16,6 +16,8 @@
 #
 #
 
+# skywalking 所有的服务
+
 org.apache.skywalking.apm.agent.core.remote.TraceSegmentServiceClient
 org.apache.skywalking.apm.agent.core.context.ContextManager
 org.apache.skywalking.apm.agent.core.sampling.SamplingService
